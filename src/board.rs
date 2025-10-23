@@ -14,7 +14,7 @@ struct TileColors {
     base_camp: Color32,
     plain: Color32,
     possible_dest: Color32,
-    selected: Color32
+    selected: Color32,
 }
 
 const TILE_COLORS: TileColors = TileColors {
@@ -23,7 +23,7 @@ const TILE_COLORS: TileColors = TileColors {
     base_camp: Color32::from_gray(180),
     plain: Color32::from_rgb(255, 255, 240),
     selected: Color32::from_rgb(200, 240, 200),
-    possible_dest: Color32::from_rgb(200, 240, 200)
+    possible_dest: Color32::from_rgb(200, 240, 200),
 };
 
 struct Figures {
@@ -45,32 +45,26 @@ const FIGURES: Figures = Figures {
     down_arrow: '⬇',
     left_arrow: '⬅',
     right_arrow: '➡',
-    captured_tile: '🗙'
+    captured_tile: '🗙',
 };
 
 struct TileState {
     piece: Option<Piece>,
     is_throne: bool,
     is_corner: bool,
-    is_base_camp: bool
+    is_base_camp: bool,
 }
 
 impl TileState {
-    fn new(
-        piece: Option<Piece>,
-        is_throne: bool,
-        is_corner: bool,
-        is_base_camp: bool
-    ) -> Self {
+    fn new(piece: Option<Piece>, is_throne: bool, is_corner: bool, is_base_camp: bool) -> Self {
         Self {
             piece,
             is_throne,
             is_corner,
-            is_base_camp
+            is_base_camp,
         }
     }
 }
-
 
 pub(crate) struct Board<T: BoardState> {
     /// The state of each tile.
@@ -84,20 +78,22 @@ pub(crate) struct Board<T: BoardState> {
     /// The side that the human is playing as.
     human_side: pieces::Side,
     /// The length of the board in tiles.
-    board_len_tiles: u8
+    board_len_tiles: u8,
 }
 
 impl<T: BoardState> Board<T> {
-
     pub(crate) fn new(game: &Game<T>, human_side: pieces::Side) -> Self {
         let mut tile_state: HashMap<Tile, TileState> = HashMap::new();
         for tile in game.logic.board_geo.iter_tiles() {
-            tile_state.insert(tile, TileState::new(
-                game.state.board.get_piece(tile),
-                game.logic.board_geo.special_tiles.throne == tile,
-                game.logic.board_geo.special_tiles.corners.contains(tile),
-                false
-            ));
+            tile_state.insert(
+                tile,
+                TileState::new(
+                    game.state.board.get_piece(tile),
+                    game.logic.board_geo.special_tiles.throne == tile,
+                    game.logic.board_geo.special_tiles.corners.contains(tile),
+                    false,
+                ),
+            );
         }
         Self {
             tile_state,
@@ -105,7 +101,7 @@ impl<T: BoardState> Board<T> {
             possible_dests: HashSet::new(),
             last_play: None,
             human_side,
-            board_len_tiles: game.logic.board_geo.side_len
+            board_len_tiles: game.logic.board_geo.side_len,
         }
     }
     fn update_tile_state(&mut self, board_state: T) {
@@ -113,7 +109,7 @@ impl<T: BoardState> Board<T> {
             state.piece = board_state.get_piece(*tile);
         }
     }
-    
+
     fn calc_tile_side_px(&self, board_side_px: f32) -> f32 {
         (board_side_px - self.board_len_tiles as f32) / (self.board_len_tiles as f32)
     }
@@ -121,21 +117,21 @@ impl<T: BoardState> Board<T> {
     pub(crate) fn update(
         &mut self,
         game: &Game<T>,
-        ctx: &egui::Context, ui:
-        &mut egui::Ui,
-        board_side_px: f32
+        ctx: &egui::Context,
+        ui: &mut egui::Ui,
+        board_side_px: f32,
     ) -> Option<Play> {
         if let Some(last_play) = game.play_history.last() {
             self.last_play = Some(last_play.clone());
         }
         self.update_tile_state(game.state.board);
-        
+
         let tile_len_px = self.calc_tile_side_px(board_side_px);
 
         let tile_size_px = Vec2::new(tile_len_px, tile_len_px);
         let mut responses: Vec<(Response, Rect, Color32, Tile)> = vec![];
         for (tile, state) in &self.tile_state {
-            let color = if self.possible_dests.contains(&tile) {
+            let color = if self.possible_dests.contains(tile) {
                 TILE_COLORS.possible_dest
             } else if state.is_throne {
                 TILE_COLORS.throne
@@ -145,14 +141,14 @@ impl<T: BoardState> Board<T> {
                 TILE_COLORS.base_camp
             } else if self.selected_tiles.0 == Some(*tile) {
                 TILE_COLORS.selected
-            } else if self.possible_dests.contains(&tile) {
+            } else if self.possible_dests.contains(tile) {
                 TILE_COLORS.possible_dest
             } else {
                 TILE_COLORS.plain
             };
             let top_left = egui::pos2(
                 (tile_len_px + 1.0) * tile.col as f32,
-                (tile_len_px + 1.0) * tile.row as f32
+                (tile_len_px + 1.0) * tile.row as f32,
             );
             let bottom_right = top_left + tile_size_px;
             let rect = egui::Rect::from_two_pos(top_left, bottom_right);
@@ -162,9 +158,12 @@ impl<T: BoardState> Board<T> {
         let painter = ui.painter();
         for (response, rect, color, tile) in responses {
             if response.clicked() {
-                if game.state.board.get_piece(tile).is_some_and(|p|
-                    p.side == game.state.side_to_play && p.side == self.human_side
-                ) {
+                if game
+                    .state
+                    .board
+                    .get_piece(tile)
+                    .is_some_and(|p| p.side == game.state.side_to_play && p.side == self.human_side)
+                {
                     // We have clicked on a tile containing our own piece and it is our turn
                     self.selected_tiles.0 = Some(tile);
                     if let Ok(iter) = game.iter_plays(tile) {
@@ -183,13 +182,27 @@ impl<T: BoardState> Board<T> {
 
             let fig_opt = if let Some(piece) = game.state.board.get_piece(tile) {
                 Some(match piece {
-                    Piece {piece_type: PieceType::King, side: pieces::Side::Defender} => FIGURES.king,
-                    Piece {piece_type: PieceType::Soldier, side: pieces::Side::Defender} => FIGURES.white_soldier,
-                    Piece {piece_type: PieceType::Soldier, side: pieces::Side::Attacker} => FIGURES.black_soldier,
-                    _ => panic!("Unexpected piece type")
+                    Piece {
+                        piece_type: PieceType::King,
+                        side: pieces::Side::Defender,
+                    } => FIGURES.king,
+                    Piece {
+                        piece_type: PieceType::Soldier,
+                        side: pieces::Side::Defender,
+                    } => FIGURES.white_soldier,
+                    Piece {
+                        piece_type: PieceType::Soldier,
+                        side: pieces::Side::Attacker,
+                    } => FIGURES.black_soldier,
+                    _ => panic!("Unexpected piece type"),
                 })
             } else if let Some(play_record) = &self.last_play {
-                if play_record.effects.captures.into_iter().any(|p: PlacedPiece| p.tile == tile) {
+                if play_record
+                    .effects
+                    .captures
+                    .into_iter()
+                    .any(|p: PlacedPiece| p.tile == tile)
+                {
                     Some(FIGURES.captured_tile)
                 } else if play_record.play.from == tile {
                     Some(if play_record.play.movement.axis == Axis::Vertical {
@@ -198,12 +211,10 @@ impl<T: BoardState> Board<T> {
                         } else {
                             FIGURES.up_arrow
                         }
+                    } else if play_record.play.movement.displacement > 0 {
+                        FIGURES.right_arrow
                     } else {
-                        if play_record.play.movement.displacement > 0 {
-                            FIGURES.right_arrow
-                        } else {
-                            FIGURES.left_arrow
-                        }
+                        FIGURES.left_arrow
                     })
                 } else {
                     None
@@ -233,7 +244,7 @@ impl<T: BoardState> Board<T> {
             // the main thread has access to the UI.
             ctx.request_repaint();
         }
-        
+
         if let (Some(from), Some(to)) = self.selected_tiles {
             // Human has made a play
             self.selected_tiles = (None, None);
@@ -243,5 +254,4 @@ impl<T: BoardState> Board<T> {
             None
         }
     }
-
 }

@@ -1,20 +1,27 @@
-#![cfg(target_arch = "wasm32")]
-
-mod ai;
-mod board;
-mod game_play_view;
-mod game_setup_view;
+pub mod ai;
+#[cfg(target_arch = "wasm32")]
 mod app;
+#[cfg(target_arch = "wasm32")]
+mod board;
+#[cfg(target_arch = "wasm32")]
+mod game_play_view;
+#[cfg(target_arch = "wasm32")]
+mod game_setup_view;
 
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
+
+#[cfg(target_arch = "wasm32")]
 use crate::app::MyApp;
 
 #[derive(Clone)]
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub struct WebHandle {
     runner: eframe::WebRunner,
 }
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 impl WebHandle {
     /// Installs a panic hook, then returns.
@@ -31,12 +38,15 @@ impl WebHandle {
 
     /// Call this once from JavaScript to start your app.
     #[wasm_bindgen]
-    pub async fn start(&self, canvas: web_sys::HtmlCanvasElement) -> Result<(), wasm_bindgen::JsValue> {
+    pub async fn start(
+        &self,
+        canvas: web_sys::HtmlCanvasElement,
+    ) -> Result<(), wasm_bindgen::JsValue> {
         self.runner
             .start(
                 canvas,
                 eframe::WebOptions::default(),
-                Box::new(|cc| Ok(Box::new(MyApp::new(cc))), )
+                Box::new(|cc| Ok(Box::new(MyApp::new(cc)))),
             )
             .await
     }
